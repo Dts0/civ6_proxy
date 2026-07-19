@@ -22,6 +22,8 @@ Civ6Relay 让 2–8 名玩家通过一台公网 Linux VPS 使用 Civilization VI
 docker compose -f deploy/docker-compose.yml up -d --build
 ```
 
+如果构建停在拉取 `python:3.12-slim` 并提示 `auth.docker.io ... timeout`，这是 VPS 无法访问 Docker Hub，而不是项目编译错误。配置可信镜像加速，或改用下面的 Python 方式；详见 [Linux 中转服部署](docs/DEPLOYMENT.md#docker-hub-连接超时)。
+
 没有 Docker 时可直接运行：
 
 ```bash
