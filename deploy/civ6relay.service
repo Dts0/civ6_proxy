@@ -1,0 +1,21 @@
+[Unit]
+Description=Civ 6 UDP relay
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=civ6relay
+Group=civ6relay
+WorkingDirectory=/opt/civ6relay
+ExecStart=/opt/civ6relay/.venv/bin/python -m civ6relay.server --listen 0.0.0.0:42056 --log-level INFO
+Restart=on-failure
+RestartSec=2
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+
+[Install]
+WantedBy=multi-user.target
+
