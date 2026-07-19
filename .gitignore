@@ -2,7 +2,18 @@ __pycache__/
 *.py[cod]
 *.egg-info/
 .pytest_cache/
+.ruff_cache/
 .venv/
 build/
 dist/
+.vscode/
 
+# Local configuration and credentials
+config.json
+.env
+.env.*
+!deploy/.env.example
+*.key
+*.pem
+*.p12
+*.pfx

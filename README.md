@@ -87,6 +87,4 @@ python -m ruff check civ6relay tests run_client.py
 python -m compileall -q civ6relay tests
 ```
 
-现有 `civ6_proxy.py` 是早期固定端口 demo，新实现位于 `civ6relay/`，两者互不依赖。
-
 研究参考：[injciv6](https://github.com/xaxys/injciv6)、[Civ6 L3 Discovery Helper](https://github.com/Frwere/civ6-l3-discovery-helper) 和 [WinDivert 文档](https://reqrypt.org/windivert-doc.html)。

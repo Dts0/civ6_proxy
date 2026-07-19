@@ -6,4 +6,14 @@ build
 dist
 tests
 .vscode
+.ruff_cache
+*.egg-info
 
+# Never send local configuration or credentials to a builder.
+config.json
+.env
+.env.*
+*.key
+*.pem
+*.p12
+*.pfx
