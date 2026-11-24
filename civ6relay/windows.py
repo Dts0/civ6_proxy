@@ -11,7 +11,7 @@ import subprocess
 import sys
 from ctypes import wintypes
 
-from .constants import CIV6_PROCESS_NAMES, VIRTUAL_SUBNET_CANDIDATES
+from .constants import CIV6_PROCESS_NAMES, DISCOVERY_PORT_MAX, DISCOVERY_PORT_MIN, SESSION_PORT, VIRTUAL_SUBNET_CANDIDATES
 
 
 class WindowsPlatformError(RuntimeError):
@@ -125,6 +125,39 @@ def select_virtual_subnet() -> ipaddress.IPv4Network:
         if not any(candidate.overlaps(network) for network in existing if network.prefixlen != 0):
             return candidate
     raise WindowsPlatformError("all reserved Civ 6 virtual subnets conflict with local routes")
+
+
+def ensure_game_firewall_rule(subnet: ipaddress.IPv4Network) -> None:
+    """Create or update the persistent inbound game rule for this client's virtual subnet."""
+    script = f"""
+$ErrorActionPreference = 'Stop'
+[Console]::OutputEncoding = [System.Text.Encoding]::UTF8
+$rule = @{{
+    Name = 'Civ6Relay-Game-Inbound'
+    PolicyStore = 'PersistentStore'
+    Direction = 'Inbound'
+    Action = 'Allow'
+    Enabled = 'True'
+    Profile = 'Any'
+    RemoteAddress = '{subnet}'
+    Protocol = 'UDP'
+    LocalPort = '{SESSION_PORT}', '{DISCOVERY_PORT_MIN}-{DISCOVERY_PORT_MAX}'
+}}
+if (Get-NetFirewallRule -PolicyStore $rule.PolicyStore -Name $rule.Name -ErrorAction SilentlyContinue) {{
+    Set-NetFirewallRule @rule
+}} else {{
+    New-NetFirewallRule @rule -DisplayName 'Civ6Relay Inbound' | Out-Null
+}}
+"""
+    try:
+        result = subprocess.run(
+            ["powershell.exe", "-NoProfile", "-NonInteractive", "-Command", script],
+            capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=20,
+        )
+    except (OSError, subprocess.TimeoutExpired) as exc:
+        raise WindowsPlatformError(str(exc)) from exc
+    if result.returncode:
+        raise WindowsPlatformError(result.stderr.strip() or f"PowerShell exit code {result.returncode}")
 
 
 def virtual_member_ip(subnet: ipaddress.IPv4Network, member_id: int) -> str:
