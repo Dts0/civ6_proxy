@@ -8,7 +8,7 @@
 | Docker 构建在 `load metadata` 超时 | VPS 无法访问 Docker Hub；配置云厂商镜像加速、覆盖 `PYTHON_IMAGE`，或直接使用 Python 运行 |
 | 中转服务器没有响应 | VPS 地址和端口、云安全组、Linux 防火墙、服务进程是否运行 |
 | 房间码创建成功但成员无法加入 | 所有人是否填写同一中转地址、房间码是否完整、房间是否已满 |
-| 工具成员在线但 Civ 6 看不到房间 | 房主是否创建“局域网”房间、游戏进程是否被检测、发现包发送计数是否增长 |
+| 工具成员在线但 Civ 6 看不到房间 | 确认房主已创建“局域网”房间、游戏进程已被检测、发现包发送计数增长，并按下文检查每台玩家机的入站规则 |
 | 能看到房间但无法加入 | UDP `62056`、Windows 防火墙、安全软件、游戏版本/DLC/模组 |
 | 进入后频繁掉线 | RTT、VPS 丢包和带宽、运营商 UDP 质量、成员是否反复离线 |
 | 提示虚拟网段冲突 | 关闭冲突 VPN，或调整占用 `10.250.250.0/24`、`172.31.250.0/24`、`192.168.250.0/24` 的路由 |
@@ -23,7 +23,38 @@ _internal\pydivert\windivert_dll\WinDivert64.dll
 _internal\pydivert\windivert_dll\WinDivert64.sys
 ```
 
-Windows 第一次询问网络访问权限时，允许 Civ 6 和 Civ6RelayClient。工具不会自动创建或修改防火墙规则。
+Windows 第一次询问网络访问权限时，允许 Civ 6 和 Civ6RelayClient。创建或加入房间时，客户端会用本机选中的完整虚拟网段创建或更新本地规则 `Civ6Relay-Game-Inbound`。断开后规则保留，下次连接时更新。
+
+如果成员在线且 RTT 正常，却看不到房间，请在每台玩家机上查看运行日志。出现“配置 Windows 防火墙失败”时客户端仍会继续连接。用管理员 PowerShell 检查生效的规则，比较 `RemoteAddress` 与该客户端状态栏的虚拟网段，并确认 `LocalPort` 包含 `62056` 和 `62900-62999`。
+
+```powershell
+$rule = Get-NetFirewallRule -PolicyStore ActiveStore -Name 'Civ6Relay-Game-Inbound'
+$rule | Format-Table Enabled, Direction, Action, Profile
+$rule | Get-NetFirewallAddressFilter
+$rule | Get-NetFirewallPortFilter
+```
+
+使用旧版客户端或需要手动配置时，可在管理员 PowerShell 中运行以下命令。将示例网段替换为本机状态栏显示的值。
+
+```powershell
+$subnet = '10.250.250.0/24'
+$params = @{
+    Name = 'Civ6Relay-Game-Inbound'
+    Direction = 'Inbound'
+    Action = 'Allow'
+    Enabled = 'True'
+    Profile = 'Any'
+    Protocol = 'UDP'
+    LocalPort = '62056', '62900-62999'
+    RemoteAddress = $subnet
+    PolicyStore = 'PersistentStore'
+}
+if (Get-NetFirewallRule -PolicyStore PersistentStore -Name $params.Name -ErrorAction SilentlyContinue) {
+    Set-NetFirewallRule @params
+} else {
+    New-NetFirewallRule @params -DisplayName 'Civ6Relay Inbound'
+}
+```
 
 如果 GUI 的 RTT 持续为 `-` 或状态变成“中转响应超时”，先排查 VPS，不要继续调游戏设置。
 

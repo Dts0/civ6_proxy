@@ -15,6 +15,8 @@ from .client import RelayClient, RelayClientError
 from .config import ClientConfig, load_config, parse_relay_address, save_config
 from .divert import WinDivertBridge
 from .windows import (
+    WindowsPlatformError,
+    ensure_game_firewall_rule,
     find_civ6_processes,
     is_admin,
     relaunch_as_admin,
@@ -201,6 +203,11 @@ class Civ6RelayApp(tk.Tk):
                 raise RelayClientError("中转服务器地址不可用")
             local_ip, interface_index, subinterface_index = route_to(relay_endpoint[0])
             subnet = select_virtual_subnet()
+            try:
+                ensure_game_firewall_rule(subnet)
+                self._post_event("log", ("info", f"已配置 Windows 防火墙入站规则，远程网段 {subnet}"))
+            except WindowsPlatformError as exc:
+                self._post_event("log", ("warn", f"配置 Windows 防火墙失败，继续连接。请检查入站规则（{subnet}）：{exc}"))
             bridge = WinDivertBridge(
                 client,
                 subnet,
@@ -409,7 +416,9 @@ def main() -> int:
     if not is_admin():
         prompt = tk.Tk()
         prompt.withdraw()
-        elevate = messagebox.askyesno("需要管理员权限", "Civ 6 UDP Relay 需要管理员权限加载网络驱动。现在重新启动吗？", parent=prompt)
+        elevate = messagebox.askyesno(
+            "需要管理员权限", "Civ 6 UDP Relay 需要管理员权限加载网络驱动并配置游戏入站防火墙规则。现在重新启动吗？", parent=prompt
+        )
         prompt.destroy()
         if elevate and relaunch_as_admin():
             return 0
