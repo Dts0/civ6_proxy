@@ -60,6 +60,17 @@ Civ6RelayClient\Civ6RelayClient.exe
 
 ## 开发
 
+### 自动测试与构建
+
+提交 PR、推送到 `master` 或手动运行 GitHub Actions 的 **Test and build** 工作流时，会在 Windows 和 Linux 上运行测试。两边的测试都通过后，各自在 x64 原生环境打包。可在该次运行的 **Artifacts** 下载压缩包。推送 `v*` 标签（例如 `v260719`）还会将两个压缩包附到对应的 GitHub Release。
+
+| 压缩包 | 用途 |
+| --- | --- |
+| `Civ6RelayClient-windows-x64.zip` | Windows 玩家客户端，包含启动联机所需的 WinDivert DLL 和驱动。 |
+| `Civ6RelayClient-linux-x64.tar.gz` | 同一客户端入口的 Linux 构建验证包。解压运行 `./Civ6RelayClient/Civ6RelayClient` 会提示仅支持 Windows 并退出。Linux 玩家端的游戏网络适配尚未移植。 |
+
+### 本地开发
+
 Windows 源码运行：
 
 ```powershell
