@@ -1,21 +1,27 @@
 # -*- mode: python ; coding: utf-8 -*-
 
+import sys
+
 from PyInstaller.utils.hooks import collect_data_files, copy_metadata
 
-pydivert_data = collect_data_files("pydivert", includes=["windivert_dll/*"])
-pydivert_data += copy_metadata("pydivert", recursive=True)
-pydivert_data += [("THIRD_PARTY_NOTICES.md", "."), ("README.md", ".")]
+windows = sys.platform == "win32"
+data = [("THIRD_PARTY_NOTICES.md", "."), ("README.md", ".")]
+hiddenimports = ["psutil"]
+if windows:
+    data += collect_data_files("pydivert", includes=["windivert_dll/*"])
+    data += copy_metadata("pydivert", recursive=True)
+    hiddenimports.append("pydivert")
 
 a = Analysis(
     ["run_client.py"],
     pathex=[],
     binaries=[],
-    datas=pydivert_data,
-    hiddenimports=["psutil", "pydivert"],
+    datas=data,
+    hiddenimports=hiddenimports,
     hookspath=[],
     hooksconfig={},
     runtime_hooks=[],
-    excludes=[],
+    excludes=[] if windows else ["pydivert"],
     noarchive=False,
     optimize=1,
 )
@@ -31,13 +37,13 @@ exe = EXE(
     bootloader_ignore_signals=False,
     strip=False,
     upx=True,
-    console=False,
+    console=not windows,
     disable_windowed_traceback=False,
     argv_emulation=False,
     target_arch="x86_64",
     codesign_identity=None,
     entitlements_file=None,
-    uac_admin=True,
+    uac_admin=windows,
 )
 
 coll = COLLECT(
